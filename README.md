@@ -4,6 +4,11 @@ A local desktop app for browsing GGUF models on disk, building `llama-server` la
 
 Built with Python + FastAPI (backend) and pywebview (native window) + plain HTML/CSS/JS (frontend, no Node/build step).
 
+<img width="1486" height="953" alt="image" src="https://github.com/user-attachments/assets/931203e2-b63f-4925-8452-1f55ee4f431d" />
+<img width="1486" height="953" alt="image" src="https://github.com/user-attachments/assets/6ccebc96-fdd5-4877-b6c8-5d44b67792a0" />
+<img width="1486" height="953" alt="image" src="https://github.com/user-attachments/assets/ee3498a5-774b-4244-88f1-af02aa26eb49" />
+<img width="1486" height="953" alt="image" src="https://github.com/user-attachments/assets/8341c260-0e28-4005-bd95-572143e6ae78" />
+
 ## Features
 
 - **Model library** - scans root folders for `.gguf` files, groups multi-part files, parses quant type, caches scans. Quick links to folder and HF repo page.
