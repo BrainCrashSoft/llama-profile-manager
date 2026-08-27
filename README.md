@@ -88,7 +88,7 @@ pip install -r requirements.txt   # only if it changed
 
 ## Versioning
 
-Follows [SemVer](https://semver.org/) (pre-1.0: MINOR = features, PATCH = fixes). Version lives in `backend/__init__.py` (`__version__`); releases are tagged `vX.Y.Z`. See `CHANGELOG.md`. The `"version": 1` field in Export-all files is a separate data-format version.
+Version lives in `backend/__init__.py` (`__version__`); releases are tagged `vX.Y.Z`. See `CHANGELOG.md`.
 
 ## Project structure
 
