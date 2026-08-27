@@ -4,10 +4,10 @@ A local desktop app for browsing GGUF models on disk, building `llama-server` la
 
 Built with Python + FastAPI (backend) and pywebview (native window) + plain HTML/CSS/JS (frontend, no Node/build step).
 
-<img width="1486" height="953" alt="image" src="https://github.com/user-attachments/assets/931203e2-b63f-4925-8452-1f55ee4f431d" />
-<img width="1486" height="953" alt="image" src="https://github.com/user-attachments/assets/6ccebc96-fdd5-4877-b6c8-5d44b67792a0" />
-<img width="1486" height="953" alt="image" src="https://github.com/user-attachments/assets/ee3498a5-774b-4244-88f1-af02aa26eb49" />
-<img width="1486" height="953" alt="image" src="https://github.com/user-attachments/assets/8341c260-0e28-4005-bd95-572143e6ae78" />
+<img width="1486" height="953" alt="image" src="https://github.com/user-attachments/assets/261a7645-92d7-43a6-983e-7933a0c8cafe" />
+<img width="1486" height="953" alt="image" src="https://github.com/user-attachments/assets/25347c4d-96e1-4c34-9220-c4d88c713b87" />
+<img width="1486" height="953" alt="image" src="https://github.com/user-attachments/assets/c94b6ab3-fa7f-4802-8ad4-be71e7f458f5" />
+<img width="1486" height="953" alt="image" src="https://github.com/user-attachments/assets/2cf36e86-7b39-4603-9598-1ef93930db9d" />
 
 ## Features
 
