@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Llama Profile Manager</title>
+  <link rel="icon" type="image/png" href="/static/icon.png" />
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+
+<body>
+
+  <div id="app" class="shell">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="brand">
+
+        <div class="brand-text">
+          <span class="brand-title">Llama Profile Manager</span>
+          <span class="brand-sub">local · gguf · llama.cpp</span>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <button class="nav-item is-active" data-view="library">
+          <span class="nav-icon">▤</span> Profiles
+        </button>
+        <button class="nav-item" data-view="download">
+          <span class="nav-icon">⇩</span> Models
+        </button>
+        <hr>
+        <button class="nav-item" data-view="server">
+          <span class="nav-icon">▶</span> Server Console
+          <span class="nav-server-dot" id="nav-dot-server" data-state="stopped"></span>
+        </button>
+        <button class="nav-item" data-view="router">
+          <span class="nav-icon">⇄</span> Router Presets
+          <span class="nav-server-dot" id="nav-dot-preset" data-state="stopped"></span>
+        </button>
+        <button class="nav-item" data-view="router_dir">
+          <span class="nav-icon">🗀</span> Router Dir
+          <span class="nav-server-dot" id="nav-dot-dir" data-state="stopped"></span>
+        </button>
+        <hr>
+        <button class="nav-item" data-view="benchmarks">
+          <span class="nav-icon">⚡</span> Benchmarks
+        </button>
+        <hr>
+        <button class="nav-item" data-view="settings">
+          <span class="nav-icon">⚙</span> Settings
+        </button>
+      </nav>
+
+      <div class="sidebar-status" id="sidebar-status">
+                <div class="sidebar-links">
+          <a class="btn btn-ghost" id="link-open-ui" href="#" target="_blank" rel="noopener">Open Web UI</a>
+          <a class="btn btn-ghost" id="link-open-llama" href="#" target="_blank" rel="noopener" hidden>Open llama UI</a>
+        </div>
+        <hr>
+        <div class="status-row">
+          <span class="status-dot" id="status-dot" data-state="stopped"></span>
+          <span id="status-label">Server stopped</span>
+        </div>
+        <div class="status-meta" id="status-meta"></div>
+
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="main">
+
+      <!-- PROFILES VIEW -->
+      <section class="view" id="view-library">
+        <div class="split-body split-body-profile">
+          <div class="split-column">
+            <header class="view-header">
+              <div>
+                <h1>Profiles</h1>
+                <p class="view-sub" id="profile-sub">No folders scanned yet.</p>
+              </div>
+            </header>
+            <div class="profile-tabs" role="tablist">
+              <button class="profile-tab is-active" role="tab" data-profile-tab="models" id="ptab-models">Models</button>
+              <button class="profile-tab" role="tab" data-profile-tab="profiles" id="ptab-profiles">Profiles</button>
+            </div>
+            <div class="view-actions">
+              <input type="search" id="profile-search" class="input search-input"
+                placeholder="Filter by profile or model…" />
+              <button class="btn btn-ghost" id="btn-rescan">↻ Rescan</button>
+              <button class="btn btn-ghost" id="btn-import-profiles" title="Import profile(s) from a JSON file (single export, export-all file, or a list)">⬇ Import</button>
+              <button class="btn btn-ghost" id="btn-export-all-profiles" title="Export every profile to one versioned JSON file">⬆ Export all</button>
+              <button class="btn btn-primary" id="btn-new-profile-global">+ New Profile</button>
+              <input type="file" id="file-import-profiles" accept=".json,application/json" hidden>
+            </div>
+            <div class="split-list" id="profile-models-list"></div>
+            <div class="split-list" id="profile-list" hidden></div>
+          </div>
+
+          <div class="split-detail" id="profile-detail">
+            <div class="empty-state">
+              <p>Select a profile to view details, or create a new one.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- DOWNLOAD -->
+      <section class="view" id="view-download" hidden>
+        <header class="view-header">
+          <div>
+            <h1>Library - Find &amp; Download Models</h1>
+            <p class="view-sub">Search Hugging Face or paste a repo, then pick a quantization to add to your library.
+            </p>
+          </div>
+        </header>
+
+        <div class="split-body is-equal">
+          <div class="split-column">
+            <div class="hf-tabs" role="tablist">
+              <button class="hf-tab is-active" role="tab" data-hf-tab="search" id="hf-tab-search">Search Hugging Face</button>
+              <button class="hf-tab" role="tab" data-hf-tab="owned" id="hf-tab-owned">My Models library</button>
+            </div>
+            <div class="view-actions" id="hf-search-actions">
+              <input type="text" id="hf-search-query" class="input search-input"
+                placeholder="Search Hugging Face for GGUF models…" />
+              <select id="hf-search-limit" class="input hf-search-limit" title="Max results">
+                <option value="10" selected>10</option>
+                <option value="15">15</option>
+                <option value="20">20</option>
+                <option value="25">25</option>
+              </select>
+              <select id="hf-search-sort" class="input hf-search-sort" title="Sort results by…">
+                <option value="likes7d">Trending</option>
+                <option value="downloads" selected>Most downloads</option>
+                <option value="likes">Most likes</option>
+                <option value="lastModified">Recently updated</option>
+                <option value="createdAt">Recently created</option>
+              </select>
+              <button class="btn btn-primary" id="btn-hf-search">Search</button>
+            </div>
+            <div class="split-list" id="hf-search-results">
+              <div class="empty-state" id="hf-search-empty">
+                <p>Search above, or paste a repo to browse its quantizations.</p>
+                <p class="muted">Limited to repos tagged <code>gguf</code>.</p>
+              </div>
+            </div>
+            <div class="split-list" id="hf-owned-results" hidden></div>
+          </div>
+
+          <div class="split-column">
+            <div class="download-paste-row">
+              <span class="muted small">or paste a repo directly:</span>
+              <input type="text" id="hf-input" class="input"
+                placeholder="org/repo or https://huggingface.co/org/repo" />
+              <button class="btn btn-ghost btn-tiny" id="btn-hf-resolve">Fetch</button>
+            </div>
+            <div class="split-detail" id="hf-detail">
+              <div class="empty-state">
+                <p>Pick a model on the left to see its available quantizations.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- One card per in-flight / recently finished download (max 3 concurrent) -->
+        <div class="download-panel" id="download-panel" hidden></div>
+      </section>
+
+      <!-- PROFILE EDITOR (parameter configurator) -->
+      <section class="view" id="view-editor" hidden>
+        <header class="view-header">
+          <div>
+            <h1 id="editor-title">Launch Profile</h1>
+            <p class="view-sub" id="editor-sub"></p>
+          </div>
+        </header>
+
+        <div class="editor-body">
+          <div class="editor-form">
+            <input type="text" id="profile-name" class="input input-lg"
+              placeholder="Profile name (e.g. Default, Long context)" />
+
+            <!-- Router-dir-only fields: hidden unless editing a Router Dir -->
+            <div id="router-dir-fields" class="param-category" hidden>
+              <div class="param-category-head is-static">
+                <span class="param-category-title">Router directory</span>
+              </div>
+              <div class="param-category-body">
+                <p class="muted small">Folder whose <code>.gguf</code> files the router serves. Parameters below are
+                  shared defaults applied to every model in it.</p>
+                <div class="field-row" style="margin-bottom:8px;">
+                  <input type="text" id="router-dir-path" class="input" placeholder="/path/to/models" />
+                  <button class="btn btn-ghost" id="btn-browse-router-dir">Browse…</button>
+                </div>
+                <div class="field-row">
+                  <label style="display:inline-flex;align-items:center;gap:6px;">
+                    Max concurrent models
+                    <input type="number" id="router-dir-models-max" class="input" min="0" max="64" style="width:72px;" title="0 = unlimited" />
+                  </label>
+                  <label class="switch" style="margin-left:12px;">
+                    <input type="checkbox" id="router-dir-autoload" />
+                    <span>Load models at startup (autoload)</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="param-search">
+              <input type="search" id="param-search" class="input" placeholder="Search parameters…" />
+            </div>
+
+            <div id="param-categories"></div>
+
+            <div class="param-category" id="advanced-panel" hidden>
+              <div class="param-category-head is-static">
+                <span class="param-category-title">Advanced: Custom Raw Flags</span>
+              </div>
+              <div class="param-category-body">
+                <p class="muted small">Space-separated extra CLI flags, for options not yet in the schema. Applied after
+                  all others.</p>
+                <textarea id="custom-flags" class="input textarea-lg" rows="6"
+                  placeholder="--some-new-flag value"></textarea>
+              </div>
+            </div>
+
+            <div class="param-category">
+              <div class="param-category-head is-static">
+                <span class="param-category-title">Notes</span>
+              </div>
+              <div class="param-category-body">
+                <textarea id="profile-notes" class="input textarea-lg" rows="6"
+                  placeholder="Free-text notes about this profile…"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="editor-preview">
+            <div class="view-actions">
+              <label class="switch">
+                <input type="checkbox" id="toggle-advanced" />
+                <span>Advanced mode</span>
+              </label>
+              <button class="btn btn-ghost" id="btn-back-to-library">← Back</button>
+              <button class="btn btn-primary" id="btn-save-profile">Save Profile</button>
+            </div>
+            <div class="preview-card">
+              <div class="preview-head"><span>Parameters</span></div>
+              <div class="file-list" id="editor-params-list">
+                <p class="muted small">Default parameters (none overridden).</p>
+              </div>
+              <div id="editor-advanced-block" hidden>
+                <div class="profile-list-head"><strong>Advanced: Custom flags</strong></div>
+                <pre class="preview-code" id="editor-advanced-preview"></pre>
+              </div>
+            </div>
+            <div class="preview-card">
+              <div class="preview-head">
+                <span>Command preview</span>
+                <button class="btn btn-tiny" id="btn-copy-command">Copy</button>
+              </div>
+              <pre class="preview-code" id="command-preview">llama-server --model …</pre>
+            </div>
+            <div class="preview-card">
+              <div class="preview-head"><span>Launch</span></div>
+              <p class="muted small" id="editor-launch-note">Runs this profile against the configured llama-server binary.</p>
+              <button class="btn btn-primary btn-block" id="btn-start-from-editor">▶ Start Server With This
+                Profile</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SERVER CONSOLE -->
+      <section class="view" id="view-server" hidden>
+        <header class="view-header">
+          <div>
+            <h1>Server Console</h1>
+            <p class="view-sub" id="server-sub">No server running.</p>
+          </div>
+          <div class="view-actions">
+            <button class="btn btn-primary" id="btn-server-start" disabled>▶ Start</button>
+            <button class="btn btn-danger" id="btn-server-stop" disabled>■ Stop Server</button>
+          </div>
+        </header>
+
+        <div class="server-body">
+          <div class="server-meta-grid" id="server-meta-grid"></div>
+          <div class="log-panel">
+            <div class="log-panel-head">
+              <span>Live log</span>
+              <button class="btn btn-tiny" id="btn-clear-log">Clear</button>
+            </div>
+            <pre class="log-output" id="log-output"></pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- ROUTER PRESETS -->
+      <section class="view" id="view-router" hidden>
+        <header class="view-header">
+          <div>
+            <h1>Router Presets</h1>
+            <p class="view-sub">One server that routes between several models (<code>--models-preset</code>).
+              Each profile becomes one model in the router.</p>
+          </div>
+          <div class="view-actions">
+            <span class="router-cap" id="router-cap-badge"></span>
+            <button class="btn btn-primary" id="btn-new-preset">+ New preset</button>
+          </div>
+        </header>
+
+        <div class="router-section">
+          <div class="preset-list" id="preset-rows"></div>
+
+          <div class="router-models" id="router-models-card" hidden>
+            <div class="router-models-head">
+              <span>Models in this router</span>
+              <button class="btn btn-tiny" id="btn-router-reload">↻ Refresh list</button>
+            </div>
+            <div id="router-model-rows"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ROUTER DIR -->
+      <section class="view" id="view-router_dir" hidden>
+        <header class="view-header">
+          <div>
+            <h1>Router Dir</h1>
+            <p class="view-sub">One router that auto-discovers every model in a folder (<code>--models-dir</code>). Set
+              the shared default parameters applied to all models in it.</p>
+          </div>
+          <div class="view-actions">
+            <span class="router-cap" id="router-dir-cap-badge"></span>
+            <button class="btn btn-primary" id="btn-new-router-dir">+ New router dir</button>
+          </div>
+        </header>
+
+        <div class="router-section">
+          <div class="preset-list" id="router-dir-rows"></div>
+
+          <div class="router-models" id="router-dir-models-card" hidden>
+            <div class="router-models-head">
+              <span>Models discovered in this directory</span>
+              <button class="btn btn-tiny" id="btn-router-dir-reload">↻ Refresh list</button>
+            </div>
+            <div id="router-dir-model-rows"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- BENCHMARKS -->
+      <section class="view" id="view-benchmarks" hidden>
+        <header class="view-header">
+          <div>
+            <h1>Benchmarks</h1>
+            <p class="view-sub">Measure prefill &amp; generation speed for a profile's exact server configuration.
+              Results are stored here and shown as badges on the Profiles page.</p>
+          </div>
+        </header>
+
+        <!-- Run new benchmark -->
+        <div class="bench-run-card">
+          <div class="bench-run-row">
+            <label class="bench-field">
+              <span>Profile</span>
+              <div class="bench-profile-row">
+                <select id="bench-profile" class="input"></select>
+                <button class="icon-btn" id="btn-bench-edit-profile" title="Open the selected profile in the editor">✎</button>
+              </div>
+            </label>
+            <label class="bench-field">
+              <span>Prompt tokens (target)</span>
+              <input type="number" id="bench-prompt-tokens" class="input bench-num" min="16" max="32768" step="16" value="512">
+            </label>
+            <label class="bench-field">
+              <span>Generate tokens</span>
+              <input type="number" id="bench-gen-tokens" class="input bench-num" min="8" max="8192" step="8" value="256">
+            </label>
+            <label class="bench-field">
+              <span>Repetitions</span>
+              <input type="number" id="bench-reps" class="input bench-num bench-num-sm" min="1" max="20" step="1" value="5">
+            </label>
+            <button class="btn btn-primary" id="btn-bench-run">▶ Run benchmark</button>
+            <button class="btn btn-danger" id="btn-bench-cancel" hidden>■ Cancel</button>
+          </div>
+          <label class="bench-field bench-field-wide">
+            <span>Custom prompt <span class="muted small">- optional, leave empty for an auto-generated prompt of the target length</span></span>
+            <textarea id="bench-custom-prompt" class="input" rows="2"
+              placeholder="Text to send as the benchmark prompt…"></textarea>
+          </label>
+          <div class="bench-progress" id="bench-progress" hidden></div>
+        </div>
+
+        <!-- History -->
+        <div class="bench-history">
+          <div class="view-actions">
+            <input type="search" id="bench-filter" class="input search-input" placeholder="Filter by profile or model…">
+            <span class="muted small" id="bench-count"></span>
+            <button class="btn" id="btn-bench-compare" disabled
+              title="Select two records to compare their parameter snapshots">⚖ Compare (0/2)</button>
+          </div>
+          <div class="bench-table-wrap">
+            <table class="bench-table">
+              <thead>
+                <tr>
+                  <th data-sort="started_at" title="Sort by time">When</th>
+                  <th data-sort="profile_name" title="Sort by profile">Profile</th>
+                  <th data-sort="model_name" title="Sort by model">Model</th>
+                  <th data-sort="prefill_tps" class="num" title="Sort by prefill speed">Prefill t/s</th>
+                  <th data-sort="generation_tps" class="num" title="Sort by generation speed">Gen t/s</th>
+                  <th class="num" title="Prompt tokens / generated tokens">Prompt/Gen</th>
+                  <th data-sort="status" title="Sort by status">Status</th>
+                  <th></th>
+                  <th title="Select records to compare"></th>
+                </tr>
+              </thead>
+              <tbody id="bench-tbody"></tbody>
+            </table>
+          </div>
+          <div class="bench-pager">
+            <span class="muted small" id="bench-page-info"></span>
+            <div class="bench-pager-controls">
+              <label class="muted small">Per page
+                <select id="bench-per-page" class="input bench-pager-select" title="Records per page">
+                  <option value="10">10</option>
+                  <option value="25" selected>25</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                </select>
+              </label>
+              <button class="btn btn-tiny" id="bench-prev-page" title="Previous page">‹ Prev</button>
+              <span class="muted small" id="bench-page-num"></span>
+              <button class="btn btn-tiny" id="bench-next-page" title="Next page">Next ›</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Selected record detail -->
+        <div id="bench-detail"></div>
+      </section>
+
+      <!-- SETTINGS -->
+      <section class="view" id="view-settings" hidden>
+        <header class="view-header">
+          <div>
+            <h1>Settings</h1>
+            <p class="view-sub">Configure paths, folders, and defaults.</p>
+          </div>
+        </header>
+
+        <div class="settings-body">
+          <div class="settings-card" id="llama-versions-card">
+            <h2>llama-server versions</h2>
+            <p class="muted small">Add one or more llama-server builds, give each a name/version, and pick the one to
+              use. The active version is what starts every server. No build yet? Grab the latest official one
+              with a single click.</p>
+
+            <div class="lsp-box">
+              <p class="muted small"><strong>Latest official build (llama.cpp)</strong> - pick the variant that
+                matches your GPU (CPU works everywhere). It is installed to <code>data/llama-servers/</code> and
+                added to the list below.</p>
+              <p class="field-hint" id="lsp-status">Checking for the latest build…</p>
+              <span class="flag-tag flag-tag-warn" id="lsp-new-badge" hidden>new build available</span>
+              <div class="field-row" style="margin-top:10px;">
+                <select id="lsp-variant" class="input lsp-variant-select" title="Build variant (CPU / CUDA / Vulkan / OpenVINO / …)" hidden></select>
+                <button class="btn" id="lsp-download" disabled>Download latest</button>
+                <button class="btn btn-ghost" id="lsp-cancel" hidden>Cancel</button>
+              </div>
+              <div id="lsp-progress" hidden style="margin-top:10px;">
+                <div class="progress-track"><div class="progress-fill" id="lsp-progress-fill"></div></div>
+                <div class="progress-meta" id="lsp-progress-meta"></div>
+              </div>
+            </div>
+
+            <div class="llama-versions" id="llama-versions"></div>
+            <div class="field-row" style="margin-top:10px;">
+              <button class="btn btn-ghost" id="btn-add-llama-version">+ Add version</button>
+            </div>
+            <p class="field-hint" id="llama-active-hint"></p>
+          </div>
+
+          <div class="settings-card">
+            <h2>Model root folders</h2>
+            <p class="muted small">Folders scanned recursively for <code>.gguf</code> files, expected as
+              <code>root/org/repo/*.gguf</code>.</p>
+            <div class="field-row">
+              <input type="text" id="settings-new-folder" class="input" placeholder="/home/user/models" />
+              <button class="btn btn-ghost" id="btn-browse-folder">Browse…</button>
+              <button class="btn btn-ghost" id="btn-add-folder">Add</button>
+            </div>
+            <ul class="folder-list" id="folder-list"></ul>
+          </div>
+
+          <div class="settings-card">
+            <h2>Default host &amp; port</h2>
+            <div class="field-row">
+              <input type="text" id="settings-host" class="input" placeholder="127.0.0.1" />
+              <input type="number" id="settings-port" class="input" placeholder="8080" min="1" max="65535" />
+            </div>
+          </div>
+
+          <div class="settings-card">
+            <h2>Server logging</h2>
+            <label class="switch">
+              <input type="checkbox" id="settings-verbose" />
+              <span>Start llama-server in verbose mode (<code>-v</code>)</span>
+            </label>
+            <p class="field-hint">Logs every message from llama-server - very chatty, only useful for debugging.</p>
+          </div>
+
+          <div class="settings-card">
+            <h2>Theme</h2>
+            <div class="field-row">
+              <select id="settings-theme" class="input">
+                <option value="dark">Dark</option>
+                <option value="light">Light</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="settings-card">
+            <h2>Remote access</h2>
+            <p class="muted small">
+              By default this app's own interface only accepts connections from this computer.
+              Turning this on lets other devices on your network open it too - <strong>there is no
+                login</strong>, so anyone who can reach this computer on the network gets full control
+              of it. Only enable this on networks you trust. Takes effect the next time you restart the app.
+            </p>
+            <label class="switch">
+              <input type="checkbox" id="settings-allow-lan" />
+              <span>Allow access from other devices on my network</span>
+            </label>
+            <p class="field-hint" id="lan-access-status"></p>
+          </div>
+
+          <div class="settings-card" id="lpm-version-card">
+            <h2>Version</h2>
+            <div class="field-row" id="lpm-version-row">
+              <span class="field-hint" id="lpm-version-line"></span>
+              <span class="flag-tag flag-tag-warn" id="lpm-new-badge" hidden>new version available</span>
+              <button class="icon-btn" id="btn-lpm-open-release" hidden title="Open release on GitHub">↗</button>
+            </div>
+          </div>
+
+          <p class="field-hint" id="settings-save-status">Settings save automatically as you edit them.</p>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <div class="toast-stack" id="toast-stack"></div>
+
+  <script src="/static/js/app.js"></script>
+</body>
+
+</html>
