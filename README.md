@@ -29,7 +29,6 @@ Built with Python + FastAPI (backend) and pywebview (native window) + plain HTML
 ## Setup
 
 ### Linux
-Not working yet, fixing it ASAP
 
 ```bash
 git clone https://github.com/BrainCrashSoft/llama-profile-manager.git
