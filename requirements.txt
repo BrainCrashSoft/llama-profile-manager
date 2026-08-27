@@ -5,3 +5,7 @@ pydantic>=2.7
 python-multipart>=0.0.9
 huggingface_hub>=0.24
 gguf>=0.19
+
+# Linux only: pywebview also needs a GUI backend for the native window.
+#   Qt backend:   pip install qtpy PySide6          (no sudo needed)
+#   GTK backend:  pip install PyGObject             (+ system packages, see README)

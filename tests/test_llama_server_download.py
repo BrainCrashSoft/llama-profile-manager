@@ -34,7 +34,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from backend import llama_release, settings  # noqa: E402
+from backend import llama_release, process_manager, settings  # noqa: E402
 from backend import llama_server_download as lsd  # noqa: E402
 
 PASSED = 0
@@ -75,9 +75,13 @@ def pick_asset() -> tuple:
 
 
 def run_version(binary: Path) -> str:
+    # binary_env() prepends the binary's folder to LD_LIBRARY_PATH on Linux -
+    # the prebuilt release .so files sit next to it and the dynamic linker
+    # won't find them any other way.
     out = subprocess.run(
         [str(binary), "--version"], capture_output=True, text=True,
         timeout=60, cwd=str(binary.parent),
+        env=process_manager.binary_env(binary),
     )
     return out.stdout + out.stderr
 

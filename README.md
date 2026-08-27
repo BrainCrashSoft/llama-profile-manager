@@ -4,6 +4,11 @@ A local desktop app for browsing GGUF models on disk, building `llama-server` la
 
 Built with Python + FastAPI (backend) and pywebview (native window) + plain HTML/CSS/JS (frontend, no Node/build step).
 
+<img width="1486" height="953" alt="image" src="https://github.com/user-attachments/assets/261a7645-92d7-43a6-983e-7933a0c8cafe" />
+<img width="1486" height="953" alt="image" src="https://github.com/user-attachments/assets/25347c4d-96e1-4c34-9220-c4d88c713b87" />
+<img width="1486" height="953" alt="image" src="https://github.com/user-attachments/assets/c94b6ab3-fa7f-4802-8ad4-be71e7f458f5" />
+<img width="1486" height="953" alt="image" src="https://github.com/user-attachments/assets/2cf36e86-7b39-4603-9598-1ef93930db9d" />
+
 ## Features
 
 - **Model library** - scans root folders for `.gguf` files, groups multi-part files, parses quant type, caches scans. Quick links to folder and HF repo page.
@@ -34,13 +39,22 @@ pip install -r requirements.txt
 python main.py
 ```
 
-pywebview needs a WebKit backend:
+pywebview needs a GUI backend (WebKit-based). **Pick one** of the two options below - on Windows neither is needed.
+
+**Option A - Qt backend (no sudo, recommended):**
 
 ```bash
-sudo apt install python3-gi python3-gi-cairo gir1.2-webkit2-4.1   # Debian/Ubuntu
+pip install qtpy PySide6   # inside the venv, same pip as requirements.txt
 ```
 
-Falls back to your default browser if pywebview can't start.
+**Option B - GTK/WebKit backend (system packages):**
+
+```bash
+sudo apt install gir1.2-webkit2-4.1 gir1.2-gtk-3.0 pkg-config libcairo2-dev libgirepository1.0-dev   # Debian/Ubuntu (older distros: gir1.2-webkit2-4.0)
+pip install PyGObject   # inside the venv - apt's python3-gi is NOT visible from a plain venv
+```
+
+If neither backend is available, the app falls back to your default browser (the server keeps running; Ctrl+C stops it).
 
 ### Windows
 

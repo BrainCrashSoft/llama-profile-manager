@@ -108,6 +108,9 @@ class LlamaServerInstaller:
         # "" for CPU (both the token-less "macos-x64" and "win-cpu-x64" forms),
         # "-cuda-12.4", "-vulkan", ... otherwise - used in dir + entry names.
         variant_suffix = "" if info["mid"] in ("", "-cpu") else info["mid"]
+        # "zip" (Windows) or "tar.gz" (Linux/macOS) - the archive format is a
+        # property of the chosen asset, not of the machine's filesystem.
+        ext = info["ext"]
 
         dest = Path(dest_dir) if dest_dir else DEFAULT_DEST
 
@@ -119,7 +122,7 @@ class LlamaServerInstaller:
             self._cancel_event = threading.Event()
 
         self._worker = threading.Thread(
-            target=self._run, args=(build, asset_name, url, dest, variant_suffix),
+            target=self._run, args=(build, asset_name, url, dest, variant_suffix, ext),
             daemon=True, name=f"llama-server-install-{build}",
         )
         self._worker.start()
@@ -136,15 +139,18 @@ class LlamaServerInstaller:
         return ev is not None and ev.is_set()
 
     def _run(self, build: int, asset_name: str, url: str, dest: Path,
-             variant_suffix: str) -> None:
-        part = dest / f"llama-server-{build}{variant_suffix}.zip.part"
+             variant_suffix: str, ext: str) -> None:
+        # The part name carries the real archive extension so the extract
+        # step (and anyone peeking into data/llama-servers/) can tell the
+        # format apart: ...-6120.zip.part vs ...-6120-vulkan.tar.gz.part.
+        part = dest / f"llama-server-{build}{variant_suffix}.{ext}.part"
         try:
             dest.mkdir(parents=True, exist_ok=True)
             self._download(url, part)
             if self._cancelled():
                 raise _Cancelled()
             self._set(state=STATE_EXTRACTING)
-            binary = self._extract(part, dest, build, variant_suffix)
+            binary = self._extract(part, dest, build, variant_suffix, ext)
             self._set(state=STATE_REGISTERING)
             entry_name = self._register(build, binary, variant_suffix)
             self._set(state=STATE_DONE, installed_path=str(binary.resolve()), entry_name=entry_name)
@@ -186,12 +192,15 @@ class LlamaServerInstaller:
             raise RuntimeError(f"Could not write the download to disk: {e}")
 
     def _extract(self, archive: Path, dest: Path, build: int,
-                 variant_suffix: str = "") -> Path:
+                 variant_suffix: str = "", ext: str = "zip") -> Path:
         """
         Pull the whole directory containing llama-server(.exe) out of the
         zip/tar.gz (whatever depth it sits at) and install it as
         dest/llama-server-b{N}{variant}/ - the Windows launcher exe needs
-        its DLL siblings to run. Returns the installed binary's path.
+        its DLL siblings to run. `ext` ("zip" or "tar.gz") comes from the
+        asset name, not the part file's suffix ("....tar.gz.part" ends in
+        ".part", so a name check would misroute tar.gz to the zip reader).
+        Returns the installed binary's path.
         """
         import posixpath
 
@@ -212,13 +221,21 @@ class LlamaServerInstaller:
             return p
 
         try:
-            if archive.name.endswith(".tar.gz"):
+            if ext == "tar.gz":
                 with tarfile.open(archive, "r:gz") as tf:
-                    files = [m for m in tf.getmembers() if m.isfile()]
+                    # Regular files AND links: the sonamed libraries the
+                    # binary is linked against (libllama-common.so.0 ->
+                    # libllama-common.so.0.3.0, ...) are symlinks in the
+                    # release tarballs, and dropping them leaves an
+                    # installed llama-server that cannot start.
+                    members = [m for m in tf.getmembers()
+                               if m.isfile() or m.issym() or m.islnk()]
+                    files = [m for m in members if m.isfile()]
                     bin_member = next((m for m in files if m.name.rsplit("/", 1)[-1] == bin_name), None)
                     if bin_member is None:
                         raise RuntimeError("The downloaded archive does not contain a llama-server binary.")
                     parent = posixpath.dirname(bin_member.name)
+                    extracted: Dict[str, Path] = {}
                     for m in files:
                         if not under(m.name, parent):
                             continue
@@ -230,6 +247,35 @@ class LlamaServerInstaller:
                             continue
                         with open(out_path, "wb") as out:
                             shutil.copyfileobj(src, out)
+                        # Keep each file's own permission bits (the
+                        # sibling CLI tools are executables too).
+                        try:
+                            os.chmod(out_path, m.mode & 0o777)
+                        except OSError:
+                            pass
+                        extracted[m.name] = out_path
+                    for m in members:
+                        if not (m.issym() or m.islnk()) or not under(m.name, parent):
+                            continue
+                        rel = m.name[len(parent) + 1:] if parent else m.name
+                        out_path = member_path(rel)
+                        out_path.parent.mkdir(parents=True, exist_ok=True)
+                        out_path.unlink(missing_ok=True)  # duplicate entries
+                        if m.issym():
+                            linkname = m.linkname or ""
+                            # Never materialize absolute or parent-escaping
+                            # links (same spirit as member_path() above).
+                            if linkname.startswith(("/", "\\")) \
+                                    or ".." in linkname.split("/"):
+                                raise RuntimeError(
+                                    f"Refusing to extract archive entry outside its folder: {m.name}")
+                            os.symlink(linkname, out_path)
+                        else:  # hard link: target must be an extracted member
+                            target = extracted.get(m.linkname or "")
+                            if target is None:
+                                raise RuntimeError(
+                                    f"Hard link target missing from archive: {m.linkname}")
+                            os.link(target, out_path)
             else:
                 with zipfile.ZipFile(archive) as zf:
                     infos = [i for i in zf.infolist() if not i.is_dir()]

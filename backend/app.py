@@ -134,7 +134,8 @@ def _active_binary_build(path_str: str) -> Optional[int]:
 
     build: Optional[int] = None
     try:
-        out = subprocess.run([str(p), "--version"], capture_output=True, text=True, timeout=20)
+        out = subprocess.run([str(p), "--version"], capture_output=True, text=True, timeout=20,
+                             env=process_manager.binary_env(p))
         build = llama_release.build_number_from_version_output(
             (out.stdout or "") + (out.stderr or "")
         )

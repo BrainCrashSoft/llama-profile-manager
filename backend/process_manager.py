@@ -33,6 +33,30 @@ STATE_STOPPING = "stopping"
 GRACEFUL_STOP_TIMEOUT_SECONDS = 8
 
 
+def binary_env(binary_path) -> Dict[str, str]:
+    """
+    Environment for executing a llama.cpp binary (llama-server, llama-bench,
+    --version probes, ...).
+
+    Prebuilt Linux releases ship the binary alongside its shared libraries
+    (libllama*.so, libggml*.so, ...) in one folder. Unlike Windows - which
+    searches the exe's own directory for DLLs - the Linux dynamic linker
+    never looks in the executable's folder, so a freshly installed
+    llama-server dies with "error while loading shared libraries" unless we
+    prepend that folder to LD_LIBRARY_PATH. A user-set value is preserved
+    (our folder goes first). Harmless for static or manually installed
+    binaries, and a no-op on macOS (dyld does not read LD_LIBRARY_PATH).
+    """
+    env = dict(os.environ)
+    if os.name == "posix":
+        folder = str(Path(str(binary_path)).expanduser().resolve().parent)
+        existing = (env.get("LD_LIBRARY_PATH") or "").strip(os.pathsep)
+        env["LD_LIBRARY_PATH"] = os.pathsep.join(
+            (folder, existing) if existing else (folder,)
+        )
+    return env
+
+
 class LlamaServerProcess:
     """Owns at most one running llama-server process."""
 
@@ -153,6 +177,7 @@ class LlamaServerProcess:
                     bufsize=1,
                     creationflags=creationflags,
                     preexec_fn=preexec_fn,
+                    env=binary_env(bin_path),
                 )
             except FileNotFoundError:
                 self._set_error(f"Could not execute llama-server at: {binary_path}")

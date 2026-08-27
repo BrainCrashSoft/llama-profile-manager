@@ -36,7 +36,7 @@ from typing import Any, Dict, List, Optional
 
 from . import benchmarks as bench_store
 from . import command_builder, profiles, settings
-from .process_manager import manager
+from .process_manager import binary_env, manager
 
 READY_TIMEOUT_S = 600      # model load can be long for big models
 COMPLETION_TIMEOUT_S = 900
@@ -452,7 +452,8 @@ class BenchmarkRunner:
             return self._version_cache[key]
         line = ""
         try:
-            out = subprocess.run([str(p), "--version"], capture_output=True, text=True, timeout=20)
+            out = subprocess.run([str(p), "--version"], capture_output=True, text=True, timeout=20,
+                                 env=binary_env(p))
             for raw in ((out.stdout or "") + (out.stderr or "")).splitlines():
                 s = " ".join(raw.split())
                 if s:

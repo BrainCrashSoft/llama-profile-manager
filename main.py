@@ -244,15 +244,26 @@ def main() -> None:
         # by the backend when it builds the window), not a create_window one.
         webview.start(icon=str(ICON_FILE) if ICON_FILE.is_file() else None)
     except ImportError:
-        print("pywebview not available; opening in your default browser instead.")
-        webbrowser.open(url)
-        print(f"Llama Profile Manager is running at {url}")
-        print("Press Ctrl+C to stop.")
-        try:
-            while True:
-                time.sleep(1)
-        except KeyboardInterrupt:
-            pass
+        # pywebview itself isn't installed.
+        _open_in_browser(url)
+    except webview.errors.WebViewException as e:
+        # pywebview is installed but no GUI backend could be loaded for this
+        # platform - e.g. Linux without GTK (python3-gi / PyGObject +
+        # gir1.2-webkit2) and without a Qt binding (pip install qtpy PySide6).
+        print(f"Native window unavailable ({e}); opening in your default browser instead.",
+              file=sys.stderr)
+        _open_in_browser(url)
+
+
+def _open_in_browser(url: str) -> None:
+    webbrowser.open(url)
+    print(f"Llama Profile Manager is running at {url}")
+    print("Press Ctrl+C to stop.")
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        pass
 
 
 if __name__ == "__main__":

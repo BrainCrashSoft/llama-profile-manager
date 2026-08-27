@@ -6,4 +6,4 @@ here for every release and keep the git tag in step with it (tag = "v" +
 this value, e.g. 0.1.0 -> v0.1.0).
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
